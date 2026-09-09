@@ -9,7 +9,16 @@
   <title>Contacto por Telegram</title>
   <meta name="description" content="Accede a Telegram para recibir más información." />
 
-  <link rel="preconnect" href="https://connect.facebook.net" crossorigin />
+  <!-- BIGO Pixel: базовый код для учёта визитов и событий -->
+  <script>
+    window.bgdataLayer = window.bgdataLayer || [];
+    function bge() { bgdataLayer.push(arguments); }
+    window.bge = window.bge || bge;
+    bge('init', "906919586700007168");
+  </script>
+  <script>
+    !function(e,t){try{if(!e)return;try{"undefined"!=typeof localStorage&&localStorage.setItem("pixel_storage_dm",e)}catch(e){}var n=document.createElement("script");n.src="https://"+e+"/ad/events.js?pixel_id="+t,n.async=!0,n.setAttribute("data-pixel-script-dm",e),(document.head||document.getElementsByTagName("head")[0]||document.body||document.documentElement).appendChild(n)}catch(e){}}(function(e){try{var t=new RegExp("(^|&)"+e+"=([^&]*)(&|$)"),n=window.location.search.substr(1).match(t);return null!=n?decodeURIComponent(n[2].replace(/\+/g," ")):""}catch(e){return""}}("dm")||"tk.mowell.tech","906919586700007168");
+  </script>
 
   <!-- Конфигурация загружается до основного скрипта -->
   <style>
@@ -336,31 +345,13 @@ h1 {
 
   ВАЖНО:
   1) telegramUsername — без символа @.
-  2) metaPixelId — только числовой ID пикселя.
-  3) primaryEvent — событие, под которое оптимизируется реклама.
-     Поддерживаемые стандартные события:
-     Lead, Contact, SubmitApplication, Subscribe, CompleteRegistration, ViewContent.
-
-  Не размещайте здесь access token от Meta Conversion API.
-  GitHub Pages — публичный статический хостинг, токен увидит любой посетитель.
+  Пиксель BIGO и событие Telegram CTA уже встроены в код страницы.
+  Никакие токены или ключи в GitHub Pages не добавляйте.
 */
 
 window.LANDING_CONFIG = {
   telegramUsername: "Ganancias_en_Online",
   telegramMessage: "¡Hola! Quiero recibir más información.",
-
-  metaPixelId: "778258931232821",
-
-  // Основное событие по клику на кнопку:
-  primaryEvent: "SubmitApplication",
-
-  // Дополнительные события обычно оставляйте пустыми.
-  // Не стоит отправлять сразу Lead + Subscribe + Contact за одно действие:
-  // это ухудшает качество данных и может мешать обучению рекламы.
-  additionalEvents: [],
-
-  // Событие при открытии страницы:
-  fireViewContentOnLoad: true,
 
   content: {
     title: "Contacto por Telegram",
@@ -387,15 +378,6 @@ window.LANDING_CONFIG = {
   "use strict";
 
   const config = window.LANDING_CONFIG || {};
-
-  const ALLOWED_EVENTS = new Set([
-    "Lead",
-    "Contact",
-    "SubmitApplication",
-    "Subscribe",
-    "CompleteRegistration",
-    "ViewContent"
-  ]);
 
   function text(id, value) {
     const element = document.getElementById(id);
@@ -439,62 +421,10 @@ window.LANDING_CONFIG = {
     }
   }
 
-  function validPixelId(value) {
-    return typeof value === "string" && /^\d{5,25}$/.test(value.trim());
-  }
-
-  function initMetaPixel() {
-    const pixelId = String(config.metaPixelId || "").trim();
-
-    if (!validPixelId(pixelId)) {
-      console.info("Meta Pixel no se ha iniciado: indica un metaPixelId numérico.");
-      return false;
-    }
-
-    if (window.fbq) {
-      return true;
-    }
-
-    /* Официальный базовый загрузчик Meta Pixel */
-    !(function(f,b,e,v,n,t,s) {
-      if (f.fbq) return;
-      n = f.fbq = function() {
-        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-      };
-      if (!f._fbq) f._fbq = n;
-      n.push = n;
-      n.loaded = true;
-      n.version = "2.0";
-      n.queue = [];
-      t = b.createElement(e);
-      t.async = true;
-      t.src = v;
-      s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s);
-    })(window, document, "script", "https://connect.facebook.net/en_US/fbevents.js");
-
-    window.fbq("init", pixelId);
-    window.fbq("track", "PageView");
-
-    if (config.fireViewContentOnLoad === true) {
-      window.fbq("track", "ViewContent", {
-        content_name: "Telegram landing",
-        content_category: "messaging"
-      });
-    }
-
-    return true;
-  }
-
-  function trackEvent(eventName) {
-    if (!window.fbq || !ALLOWED_EVENTS.has(eventName)) {
-      return;
-    }
-
-    window.fbq("track", eventName, {
-      content_name: "Telegram contact",
-      content_category: "messaging",
-      destination: "telegram"
+  function bge_button() {
+    bge('event', 'button', {
+      configId: '906919586700007168',
+      monetary: 0
     });
   }
 
@@ -525,14 +455,8 @@ window.LANDING_CONFIG = {
       return;
     }
 
-    const primaryEvent = String(config.primaryEvent || "Contact");
-    trackEvent(ALLOWED_EVENTS.has(primaryEvent) ? primaryEvent : "Contact");
-
-    if (Array.isArray(config.additionalEvents)) {
-      config.additionalEvents
-        .filter((eventName) => ALLOWED_EVENTS.has(eventName))
-        .forEach(trackEvent);
-    }
+    // BIGO фиксирует именно клик по существующей Telegram-кнопке.
+    bge_button();
 
     // Сначала пытаемся открыть приложение Telegram.
     window.location.href = urls.app;
@@ -545,8 +469,6 @@ window.LANDING_CONFIG = {
 
   document.addEventListener("DOMContentLoaded", () => {
     applyContent();
-    initMetaPixel();
-
     const button = document.getElementById("telegram-button");
     if (button) {
       button.addEventListener("click", openTelegram);
