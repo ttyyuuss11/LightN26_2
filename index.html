@@ -337,9 +337,7 @@ h1 {
   ВАЖНО:
   1) telegramUsername — без символа @.
   2) tiktokPixelId — ID TikTok Pixel.
-  3) primaryEvent — событие, под которое оптимизируется реклама.
-     Поддерживаемые стандартные события в этой версии:
-     Lead, ClickButton, SubmitApplication, Subscribe, CompleteRegistration, ViewContent.
+  3) По клику на кнопку Telegram отправляется только одно событие TikTok: ClickButton.
 
   Не размещайте здесь access token от TikTok Events API.
   Статический лендинг публичен, токен увидит любой посетитель.
@@ -351,16 +349,6 @@ window.LANDING_CONFIG = {
 
   tiktokPixelId: "DBAJOIJC77UAEK31D120",
 
-  // Основное событие по клику на кнопку Telegram:
-  primaryEvent: "ClickButton",
-
-  // Дополнительные события обычно оставляйте пустыми.
-  // Не стоит отправлять сразу Lead + Subscribe + ClickButton за одно действие:
-  // это ухудшает качество данных и может мешать обучению рекламы.
-  additionalEvents: [],
-
-  // Событие при открытии страницы:
-  fireViewContentOnLoad: true,
 
   content: {
     title: "Contacto por Telegram",
@@ -388,14 +376,7 @@ window.LANDING_CONFIG = {
 
   const config = window.LANDING_CONFIG || {};
 
-  const ALLOWED_EVENTS = new Set([
-    "Lead",
-    "ClickButton",
-    "SubmitApplication",
-    "Subscribe",
-    "CompleteRegistration",
-    "ViewContent"
-  ]);
+
 
   function text(id, value) {
     const element = document.getElementById(id);
@@ -494,19 +475,8 @@ window.LANDING_CONFIG = {
     window.ttq.load(pixelId);
     window.ttq.page();
 
-    if (config.fireViewContentOnLoad === true) {
-      window.ttq.track("ViewContent");
-    }
 
     return true;
-  }
-
-  function trackEvent(eventName) {
-    if (!window.ttq || !ALLOWED_EVENTS.has(eventName)) {
-      return;
-    }
-
-    window.ttq.track(eventName);
   }
 
   function buildTelegramUrls() {
@@ -536,13 +506,9 @@ window.LANDING_CONFIG = {
       return;
     }
 
-    const primaryEvent = String(config.primaryEvent || "ClickButton");
-    trackEvent(ALLOWED_EVENTS.has(primaryEvent) ? primaryEvent : "ClickButton");
-
-    if (Array.isArray(config.additionalEvents)) {
-      config.additionalEvents
-        .filter((eventName) => ALLOWED_EVENTS.has(eventName))
-        .forEach(trackEvent);
+    // Единственное целевое событие: клик по кнопке Telegram.
+    if (window.ttq && typeof window.ttq.track === "function") {
+      window.ttq.track("ClickButton");
     }
 
     // Сначала пытаемся открыть приложение Telegram.
